@@ -11,19 +11,38 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    // Simulate registration
-    const user = { name, email, password, role: 'employee' };
-    localStorage.setItem('user', JSON.stringify(user));
-    router.push('/login');
+    try {
+      const res = await fetch('http://localhost:3000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password}) // role can be dynamic
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      setSuccess('Registration successful!');
+      router.push('/login');
+
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    }
   };
 
   return (
@@ -35,6 +54,7 @@ export default function RegisterPage() {
         <h2 className="text-2xl font-bold text-center">Register</h2>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        {success && <p className="text-green-500 text-sm text-center">{success}</p>}
 
         <div>
           <label className="block mb-1 font-semibold">Name</label>
@@ -94,3 +114,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

@@ -17,26 +17,38 @@ export default function AdminPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
-    const storedAdmin = localStorage.getItem('user');
-    if (storedAdmin) {
-      setAdmin(JSON.parse(storedAdmin));
-    }
+    // Fetch admin profile
+    fetch('http://localhost:3001/api/admin/me')
+      .then(res => res.json())
+      .then(data => setAdmin(data))
+      .catch(err => console.error('Admin fetch failed:', err));
 
-    // Example static data — in real case, fetch from backend
-    setEmployees([
-      { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Employee' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Employee' },
-      { id: 3, name: 'Bob Brown', email: 'bob@example.com', role: 'Employee' },
-      { id: 4, name: 'Alice Green', email: 'alice@example.com', role: 'Employee' },
-      { id: 5, name: 'Tom White', email: 'tom@example.com', role: 'Employee' },
-    ]);
+    // Fetch employees
+    fetch('http://localhost:3001/api/admin/employees')
+      .then(res => res.json())
+      .then(data => setEmployees(data))
+      .catch(err => console.error('Employee list fetch failed:', err));
   }, []);
 
-  const handleUpdate = (updated: Employee) => {
-    setEmployees(prev =>
-      prev.map(emp => (emp.id === updated.id ? updated : emp))
-    );
-    setEditingEmployee(null);
+  const handleUpdate = async (updated: Employee) => {
+    try {
+      const res = await fetch(`http://localhost:3000/admin/${updated.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+
+      if (!res.ok) throw new Error('Failed to update employee');
+
+      const data = await res.json();
+
+      setEmployees(prev =>
+        prev.map(emp => (emp.id === data.id ? data : emp))
+      );
+      setEditingEmployee(null);
+    } catch (err) {
+      console.error('Update failed:', err);
+    }
   };
 
   return (
@@ -157,3 +169,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

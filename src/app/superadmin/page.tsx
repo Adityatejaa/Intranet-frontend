@@ -17,20 +17,35 @@ export default function SuperAdminPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) {
-      setSuperAdmin(JSON.parse(stored));
-    }
+  const stored = localStorage.getItem('user');
+  if (stored) {
+    setSuperAdmin(JSON.parse(stored));
+  }
 
-    // Replace with API call later
-    setEmployees([
-      { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Employee' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Employee' },
-      { id: 3, name: 'Bob Brown', email: 'bob@example.com', role: 'Employee' },
-      { id: 4, name: 'Alice Green', email: 'alice@example.com', role: 'Employee' },
-      { id: 5, name: 'Tom White', email: 'tom@example.com', role: 'Employee' },
-    ]);
-  }, []);
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/employees', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Optional: add authorization header if needed
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
+      }
+
+      const data = await response.json();
+      setEmployees(data);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
+  };
+
+  fetchEmployees();
+}, []);
+
 
   const handleUpdate = (updated: Employee) => {
     setEmployees(prev =>
