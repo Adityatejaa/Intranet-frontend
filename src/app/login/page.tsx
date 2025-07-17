@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
+
+type DecodedToken = {
+  name: string;
+  email: string;
+  role: string;
+  exp: number;
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,12 +22,15 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/login', {
+      const res = await fetch('http://localhost:8080/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name , password })
+        body: JSON.stringify({
+          userName: name,   // ✅ Fix: changed from username to name
+          password: password,
+        }),
       });
 
       if (!res.ok) {
@@ -27,20 +38,27 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      const user = await res.json(); // expects { name, email, role }
-      localStorage.setItem('user', JSON.stringify(user));
+      const data = await res.json(); // { token: '...' }
+      const decoded: DecodedToken = jwtDecode(data.token);
+
+      // Store token and user info
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(decoded));
 
       // Redirect based on role
-      if (user.role === 'admin') {
-        router.push('/admin');
-      } else if (user.role === 'superadmin') {
-        router.push('/superadmin');
-      } else if (user.role === 'employee') {
-        router.push('/employee');
-      } else {
-        setError('Unknown role');
+      switch (decoded.role) {
+        case 'ADMIN':
+          router.push('/admin');
+          break;
+        case 'SUPERADMIN':
+          router.push('/superadmin');
+          break;
+        case 'EMPLOYEE':
+          router.push('/employee');
+          break;
+        default:
+          setError('Unknown user role');
       }
-
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     }
@@ -55,11 +73,11 @@ export default function LoginPage() {
         <h2 className="text-2xl font-bold text-center">Login</h2>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        
+
         <div>
-          <label className="block mb-1 font-semibold">UserName</label>
+          <label className="block mb-1 font-semibold">Username</label>
           <input
-            type="text" // changed from "email" to "text"
+            type="text"
             autoComplete="username"
             required
             className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -73,6 +91,7 @@ export default function LoginPage() {
           <label className="block mb-1 font-semibold">Password</label>
           <input
             type="password"
+            autoComplete="current-password"
             required
             className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
             value={password}
@@ -91,4 +110,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
